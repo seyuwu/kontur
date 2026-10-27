@@ -1,0 +1,1 @@
+ALTER TABLE "ReviewEvent" ADD COLUMN "viewedAt" TIMESTAMP(3);

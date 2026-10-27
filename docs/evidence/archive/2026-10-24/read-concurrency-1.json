@@ -1,0 +1,33 @@
+{
+  "measuredAt": "2026-10-24T14:39:13.866Z",
+  "scope": "Local synthetic read workload; not a production capacity estimate",
+  "patients": 120,
+  "observations": 4200,
+  "concurrency": 1,
+  "requests": 180,
+  "elapsedMs": 1433,
+  "errors": 0,
+  "endpoints": [
+    {
+      "kind": "directory",
+      "requests": 60,
+      "p50Ms": 9.4,
+      "p95Ms": 12.4,
+      "maxBytes": 7756
+    },
+    {
+      "kind": "detail",
+      "requests": 60,
+      "p50Ms": 6.2,
+      "p95Ms": 7.7,
+      "maxBytes": 9593
+    },
+    {
+      "kind": "history",
+      "requests": 60,
+      "p50Ms": 6.2,
+      "p95Ms": 8.7,
+      "maxBytes": 12989
+    }
+  ]
+}

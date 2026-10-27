@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-27T12:26:01.217Z",
+  "scope": "Static imports and re-exports only; runtime permissions and dynamic imports need separate tests",
+  "sourceFiles": 147,
+  "clientEntries": 40,
+  "calculationCoreFiles": 2,
+  "violations": []
+}

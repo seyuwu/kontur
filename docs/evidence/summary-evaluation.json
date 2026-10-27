@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-25T21:25:02.101Z",
+  "provider": "mistral",
+  "model": "ministral-14b-latest",
+  "syntheticOnly": true,
+  "clinicalValidation": false,
+  "plannedRequests": 3,
+  "completedRequests": 3,
+  "measurements": [
+    {
+      "run": 1,
+      "facts": 4,
+      "durationMs": 7770
+    },
+    {
+      "run": 2,
+      "facts": 4,
+      "durationMs": 8247
+    },
+    {
+      "run": 3,
+      "facts": 4,
+      "durationMs": 7457
+    }
+  ]
+}

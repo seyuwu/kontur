@@ -1,0 +1,10 @@
+{
+  # Container tests never install a CA into the host's trust store.
+  skip_install_trust
+}
+{$SITE_ADDRESS} {
+  request_body {
+    max_size 1MB
+  }
+  reverse_proxy web:3000
+}

@@ -1,0 +1,32 @@
+import { chromium } from "playwright";
+import { strict as assert } from "node:assert";
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? "C:/Users/nefon/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe" });
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "ru-RU", reducedMotion: "reduce" });
+const page = await context.newPage();
+await page.goto("http://localhost:3000/login"); await page.waitForLoadState("networkidle");
+await page.getByRole("button", { name: /Кабинет терапевта/ }).click(); await page.waitForURL("**/doctor"); await page.waitForLoadState("networkidle");
+for (const width of [390, 768]) {
+  await page.setViewportSize({ width, height: width === 390 ? 844 : 1024 });
+  await page.goto("http://localhost:3000/doctor"); await page.waitForLoadState("networkidle");
+  assert(await page.locator(".mobile-demo-label").isVisible());
+  await page.screenshot({ path: `.impeccable/review/doctor-list-${width}.png`, fullPage: true });
+  await page.getByRole("button", { name: /Анна Ковалёва/ }).first().click();
+  assert(await page.locator(".mobile-demo-label").isVisible());
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.screenshot({ path: `.impeccable/review/doctor-detail-${width}.png`, fullPage: true });
+  console.log(`Synthetic marking and overflow ${width}:`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+}
+await page.getByRole("button", { name: "Добавить запись" }).click();
+await page.getByRole("textbox", { name: "Что обсудить с пациентом" }).fill("Черновик для проверки сохранения");
+await page.getByLabel("Следующий контакт", { exact: true }).fill("2026-11-20");
+await page.keyboard.press("Escape");
+assert(await page.getByRole("button", { name: "Добавить запись" }).evaluate(el => el === document.activeElement));
+await page.getByRole("button", { name: "Добавить запись" }).click();
+assert.equal(await page.getByRole("textbox", { name: "Что обсудить с пациентом" }).inputValue(), "Черновик для проверки сохранения");
+assert.equal(await page.getByLabel("Следующий контакт", { exact: true }).inputValue(), "2026-11-20");
+await page.screenshot({ path: ".impeccable/review/note-draft.png", fullPage: true });
+await page.getByRole("button", { name: "Сбросить изменения" }).click();
+assert.notEqual(await page.getByRole("textbox", { name: "Что обсудить с пациентом" }).inputValue(), "Черновик для проверки сохранения");
+await page.keyboard.press("Escape");
+console.log("Note draft survives dismissal and focus returns; explicit discard works.");
+await browser.close();

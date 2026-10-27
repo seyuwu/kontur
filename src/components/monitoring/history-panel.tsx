@@ -1,0 +1,17 @@
+"use client";
+import { useState } from "react";
+import { ClipboardList, Heart } from "lucide-react";
+import type { HistoryPage, HistoryPeriod } from "@/lib/history";
+import type { ObservationData } from "@/lib/types";
+import { dateLabel } from "@/lib/format";
+import { Button, TextLink } from "@/components/ui/primitives";
+import { useCareResource } from "@/components/assessments/use-care-resource";
+export function HistoryPanel({ patientId, onObservation }: { patientId: string; onObservation?: (o: ObservationData) => void }) {
+  const [period, setPeriod] = useState<HistoryPeriod>("30"); const [cursor, setCursor] = useState<string>();
+  const resource = useCareResource<HistoryPage>(`/api/patients/${patientId}/history?period=${period}${cursor ? `&cursor=${cursor}` : ""}`);
+  return <section className="surface history-panel" aria-label="Полная история наблюдения"><div className="surface-header"><h2>История наблюдения</h2><label className="history-period">Период<select value={period} onChange={e => { setCursor(undefined); setPeriod(e.target.value as HistoryPeriod); }}><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="ALL">Всё время</option></select></label></div>
+    <div className="surface-body"><p className="secondary-text small-text">Отметки, отправленные анкеты и события плана. Пропуски в записях не означают стабильность состояния.</p>{resource.error && <div className="form-error" role="alert">{resource.error}<Button variant="quiet" onClick={() => void resource.refresh()}>Повторить загрузку</Button></div>}{resource.loading && !resource.data && <p role="status">Загружаем историю…</p>}
+    {resource.data?.entries.map(entry => <div className="change-row" key={`${entry.kind}:${entry.id}`}><span className="event-icon" aria-hidden="true">{entry.observation ? <Heart size={15} /> : <ClipboardList size={15} />}</span><div className="change-row-text"><h3>{entry.title}</h3>{entry.detail && <p className="care-prose">{entry.detail}</p>}{entry.observation && <><p className="secondary-text small-text">Личная отметка, не диагностическая шкала.{entry.observation.needsContact && (entry.observation.acknowledgedAt ? " Врач отметил просмотр просьбы связаться." : " Просьба связаться сохранена в карточке.")}</p>{onObservation && <TextLink onClick={() => onObservation(entry.observation!)}>Исходная отметка</TextLink>}</>}{entry.assessment && <details className="assessment-source"><summary>{entry.assessment.metric.label}: {entry.assessment.metric.value} · версия {entry.assessment.version}</summary><p className="small-text">{entry.assessment.metric.interpretation}</p><p className="secondary-text small-text">Диапазон {entry.assessment.metric.minimum}–{entry.assessment.metric.maximum}. Инструмент {entry.assessment.code}, версия {entry.assessment.version}. Результаты разных версий и шкал автоматически не сопоставляются.</p></details>}</div><span className="change-row-time">{dateLabel(entry.createdAt, { hour: "2-digit", minute: "2-digit" })}</span></div>)}
+    {resource.data && !resource.data.entries.length && <p className="history-empty">За этот период записей нет. Можно выбрать другой период.</p>}
+    <div className="assessment-pagination">{cursor && <Button variant="secondary" onClick={() => setCursor(undefined)}>К последним записям</Button>}{resource.data?.nextCursor && <Button variant="secondary" disabled={resource.loading} onClick={() => setCursor(resource.data!.nextCursor!)}>Более ранние записи</Button>}</div></div></section>;
+}

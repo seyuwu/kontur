@@ -1,0 +1,710 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String    @default("PATIENT")
+  specialty     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  patients      Patient[] @relation("LeadingDoctor")
+  patient       Patient?  @relation("PatientAccount")
+  linkRequests  LinkRequest[]
+  messages      Message[]
+  pushDevices   PushDevice[]
+  summaries     SavedSummary[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushDevices PushDevice[]
+  @@index([userId])
+}
+
+model Account {
+  id                     String    @id
+  accountId              String
+  providerId             String
+  userId                 String
+  accessToken            String?
+  refreshToken           String?
+  idToken                String?
+  accessTokenExpiresAt   DateTime?
+  refreshTokenExpiresAt  DateTime?
+  scope                  String?
+  password               String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([identifier])
+}
+
+model PushDevice {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  endpointHash String @unique
+  endpoint String
+  p256dh String
+  auth String
+  keyFingerprint String
+  label String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deliveries PushDelivery[]
+  @@index([userId, active])
+}
+
+model PushDelivery {
+  reminderId String?
+  reminder PatientReminder? @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  assignmentId String?
+  assignment AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  purpose String @default("TEST")
+  observationId String?
+  observation Observation? @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  deviceId String
+  device PushDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sessionId String
+  eventId String?
+  event ReviewEvent? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  requestKey String? @unique
+  status String @default("PENDING")
+  revision Int @default(0)
+  attempts Int @default(0)
+  errorCode String?
+  nextAttemptAt DateTime?
+  acceptedAt DateTime?
+  shownAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([eventId, deviceId])
+  @@unique([observationId, deviceId])
+  @@unique([assignmentId, deviceId, purpose])
+  @@unique([reminderId, deviceId])
+  @@index([deviceId, createdAt])
+}
+
+model Patient {
+  id          String   @id @default(cuid())
+  publicId    String   @unique
+  name        String
+  birthDate   DateTime
+  doctorId    String
+  userId      String?  @unique
+  note        String   @default("")
+  nextVisit   DateTime?
+  nextVisitHasTime Boolean @default(false)
+  nextVisitRevision Int @default(0)
+  lastReview  DateTime?
+  clinicalDataVersion Int @default(0)
+  currentClinicalProfileId String? @unique
+  currentClinicalProfile ClinicalProfileVersion? @relation("CurrentClinicalProfile", fields: [currentClinicalProfileId], references: [id], onDelete: SetNull)
+  clinicalProfiles ClinicalProfileVersion[] @relation("PatientClinicalProfiles")
+  currentPlanId String? @unique
+  currentPlan CarePlanVersion? @relation("CurrentCarePlan", fields: [currentPlanId], references: [id], onDelete: SetNull)
+  carePlans CarePlanVersion[] @relation("PatientCarePlans")
+  careDraft CarePlanDraft?
+  careTasks CareTask[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  doctor      User     @relation("LeadingDoctor", fields: [doctorId], references: [id])
+  user        User?    @relation("PatientAccount", fields: [userId], references: [id])
+  observations Observation[]
+  messages     Message[]
+  invitations  Invitation[]
+  events       PatientEvent[]
+  assessments  AssessmentAssignment[]
+  reviewEvents ReviewEvent[]
+  concerns PatientConcern[]
+  referrals Referral[]
+  documents ClinicalDocument[]
+  summaries SavedSummary[]
+  reminders PatientReminder[]
+  @@index([doctorId, updatedAt])
+  @@index([doctorId, updatedAt, id])
+  @@index([doctorId, nextVisit, id])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Patient_name_trgm_idx")
+  @@index([publicId(ops: raw("gin_trgm_ops"))], type: Gin, map: "Patient_publicId_trgm_idx")
+}
+
+model SavedSummary {
+  id String @id @default(cuid())
+  patientId String
+  doctorId String
+  scopeKey String
+  payload Json
+  updatedAt DateTime @updatedAt
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor User @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  @@unique([patientId, doctorId, scopeKey])
+}
+
+model PatientReminder {
+  id String @id @default(cuid())
+  key String @unique
+  patientId String
+  recipientId String
+  kind String
+  planId String?
+  taskId String?
+  assignmentId String?
+  dueAt DateTime
+  createdAt DateTime @default(now())
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  task CareTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  deliveries PushDelivery[]
+  @@index([patientId, dueAt])
+}
+
+model Observation {
+  pushDeliveries PushDelivery[]
+  id           String   @id @default(cuid())
+  patientId    String
+  score        Int?
+  note         String   @default("")
+  needsContact Boolean  @default(false)
+  acknowledgedAt DateTime?
+  requestKey   String   @unique
+  createdAt    DateTime @default(now())
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  @@index([patientId, createdAt])
+  @@index([patientId, needsContact, acknowledgedAt])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  patientId  String
+  senderId   String
+  text       String
+  readAt     DateTime?
+  requestKey String   @unique
+  createdAt  DateTime @default(now())
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sender     User     @relation(fields: [senderId], references: [id])
+  @@index([patientId, createdAt])
+  @@index([patientId, readAt, senderId])
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  patientId String
+  tokenHash String   @unique
+  codeHash  String   @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  requests  LinkRequest[]
+  @@index([patientId, createdAt])
+}
+
+model LinkRequest {
+  id           String   @id @default(cuid())
+  invitationId String
+  userId       String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  resolvedAt   DateTime?
+  invitation   Invitation @relation(fields: [invitationId], references: [id])
+  user         User @relation(fields: [userId], references: [id])
+  @@unique([invitationId, userId])
+}
+
+model PatientEvent {
+  id        String   @id @default(cuid())
+  patientId String
+  kind      String
+  title     String
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  @@index([patientId, createdAt])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  targetId  String
+  createdAt DateTime @default(now())
+  @@index([targetId, createdAt])
+}
+
+enum DefinitionMode {
+  DEMO
+  CLINICAL
+}
+
+enum DefinitionReview {
+  DEMO
+  DRAFT
+  APPROVED
+}
+
+enum AssessmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ReviewEventStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model AssessmentDefinition {
+  id           String @id @default(cuid())
+  code         String
+  version      Int
+  mode         DefinitionMode
+  review       DefinitionReview
+  title        String
+  checksum     String
+  content      Json
+  publishedAt  DateTime @default(now())
+  assignments  AssessmentAssignment[]
+  @@unique([code, version])
+  @@index([mode, review])
+}
+
+model AssessmentAssignment {
+  pushDeliveries PushDelivery[]
+  id            String @id @default(cuid())
+  patientId     String
+  definitionId  String
+  definitionCode String
+  assignedById  String
+  status        AssessmentStatus @default(ASSIGNED)
+  dueAt         DateTime?
+  draftAnswers  Json @default("{}")
+  draftNote     String @default("")
+  revision      Int @default(0)
+  cancellationReason String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+  patient       Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  definition    AssessmentDefinition @relation(fields: [definitionId], references: [id])
+  careTasks     CareTask[]
+  submission    AssessmentSubmission?
+  @@index([patientId, status, createdAt, id])
+  @@index([patientId, definitionCode, status])
+}
+
+model AssessmentSubmission {
+  id           String @id @default(cuid())
+  assignmentId String @unique
+  requestKey   String @unique
+  payloadHash  String
+  definitionChecksum String
+  answers      Json
+  note         String
+  result       Json
+  submittedById String
+  createdAt    DateTime @default(now())
+  assignment   AssessmentAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  reviewEvents ReviewEvent[]
+}
+
+model ReviewEvent {
+  id            String @id @default(cuid())
+  patientId     String
+  recipientId   String
+  submissionId  String
+  ruleId        String
+  definitionChecksum String
+  title         String
+  reason        String
+  mode          DefinitionMode
+  priority      Int @default(0)
+  actions       Json
+  status        ReviewEventStatus @default(OPEN)
+  ownerId       String?
+  viewedAt      DateTime?
+  claimedAt     DateTime?
+  resolvedAt    DateTime?
+  resolvedById  String?
+  resolutionActionId String?
+  resolution    String?
+  resolutionMethod String?
+  resolutionRequestKey String? @unique
+  resolutionPayloadHash String?
+  currentBasisId String? @unique
+  currentBasis ReviewBasisVersion? @relation("CurrentReviewBasis", fields: [currentBasisId], references: [id], onDelete: SetNull)
+  basisVersions ReviewBasisVersion[] @relation("EventReviewBases")
+  messageExecutions ReviewMessageExecution[]
+  emailDelivery NotificationDelivery?
+  pushDeliveries PushDelivery[]
+  revision      Int @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  patient       Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  submission    AssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  @@unique([submissionId, ruleId])
+  @@index([recipientId, status, createdAt, id])
+  @@index([patientId, status, createdAt, id])
+}
+
+model ReviewBasisVersion {
+  id String @id @default(cuid())
+  eventId String
+  event ReviewEvent @relation("EventReviewBases", fields: [eventId], references: [id], onDelete: Cascade)
+  currentFor ReviewEvent? @relation("CurrentReviewBasis")
+  version Int
+  content Json
+  contentHash String
+  contextToken String
+  createdById String
+  createdByName String
+  createdAt DateTime @default(now())
+  messages ReviewMessageExecution[]
+  @@unique([eventId, version])
+}
+
+model ReviewMessageExecution {
+  id String @id @default(cuid())
+  eventId String
+  event ReviewEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  basisId String
+  basis ReviewBasisVersion @relation(fields: [basisId], references: [id])
+  actorId String
+  actionId String
+  messageId String @unique
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@index([eventId, createdAt, id])
+}
+
+enum CareDraftStatus {
+  DRAFT
+  PUBLISHED
+  DISCARDED
+}
+
+enum CareTaskKind {
+  ACTION
+  ASSESSMENT
+  MEDICATION
+}
+
+enum CareReportState {
+  DONE
+  NOT_DONE
+  NEEDS_HELP
+}
+
+model CarePlanDraft {
+  id String @id @default(cuid())
+  patientId String @unique
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  revision Int @default(1)
+  status CareDraftStatus @default(DRAFT)
+  content Json
+  basisToken String
+  updatedById String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model CarePlanVersion {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation("PatientCarePlans", fields: [patientId], references: [id], onDelete: Cascade)
+  currentFor Patient? @relation("CurrentCarePlan")
+  version Int
+  goal String
+  instructions String
+  nextContactDate String?
+  appointment Json?
+  basisToken String
+  clinicalDataVersion Int
+  previousPlanId String?
+  confirmedById String
+  confirmedByName String
+  clinicalProfileVersionId String?
+  confirmedAt DateTime @default(now())
+  confirmationKey String @unique
+  confirmationHash String
+  tasks CarePlanTask[]
+  reports CareTaskReport[]
+  dailyReports CareDailyReport[]
+  @@unique([patientId, version])
+  @@index([patientId, confirmedAt, id])
+}
+
+model CareTask {
+  id String @id
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  kind CareTaskKind
+  title String
+  details String
+  dueDate String?
+  repeat String?
+  startDate String?
+  time String?
+  medication Json?
+  assignmentId String?
+  assignment AssessmentAssignment? @relation(fields: [assignmentId], references: [id])
+  contentHash String
+  createdAt DateTime @default(now())
+  plans CarePlanTask[]
+  reports CareTaskReport[]
+  dailyReports CareDailyReport[]
+  reminders PatientReminder[]
+  medicationSchedules MedicationSchedule[]
+  @@index([patientId, id])
+}
+
+model CarePlanTask {
+  planId String
+  taskId String
+  position Int
+  plan CarePlanVersion @relation(fields: [planId], references: [id], onDelete: Cascade)
+  task CareTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@id([planId, taskId])
+  @@unique([planId, position])
+  @@index([taskId])
+}
+
+model CareTaskReport {
+  id String @id @default(cuid())
+  taskId String
+  task CareTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  planVersionId String
+  planVersion CarePlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  actorId String
+  revision Int
+  state CareReportState
+  note String
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@unique([taskId, revision])
+  @@index([planVersionId, taskId])
+}
+
+model ClinicalProfileVersion {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation("PatientClinicalProfiles", fields: [patientId], references: [id], onDelete: Cascade)
+  currentFor Patient? @relation("CurrentClinicalProfile")
+  version Int
+  content Json
+  contentHash String
+  previousVersionId String?
+  savedById String
+  savedByName String
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@unique([patientId, version])
+}
+
+model CareDailyReport {
+  id String @id @default(cuid())
+  taskId String
+  task CareTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  planVersionId String
+  planVersion CarePlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  date String
+  time String @default("")
+  revision Int
+  state String
+  note String
+  needsContact Boolean @default(false)
+  actorId String
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@unique([taskId, date, revision])
+  @@index([planVersionId, taskId])
+}
+
+model PatientConcern {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  kind String
+  title String
+  description String
+  startedOn String?
+  impact String
+  planVersionId String?
+  actorId String
+  requestKey String @unique
+  payloadHash String
+  messageId String @unique
+  reviewedAt DateTime?
+  reviewedById String?
+  createdAt DateTime @default(now())
+  @@index([patientId, createdAt, id])
+}
+
+model Referral {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  revision Int @default(1)
+  content Json
+  status String @default("CONFIRMED")
+  basisToken String
+  clinicalProfileVersionId String?
+  planVersionId String?
+  confirmedById String
+  confirmedByName String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history ReferralUpdate[]
+  @@index([patientId, createdAt, id])
+}
+
+model ReferralUpdate {
+  id String @id @default(cuid())
+  referralId String
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  revision Int
+  status String
+  date String?
+  note String
+  actorId String
+  actorName String
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@unique([referralId, revision])
+}
+
+model ClinicalDocument {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title String
+  date String?
+  text String
+  checksum String
+  createdById String
+  requestKey String @unique
+  payloadHash String
+  sourceBytes Bytes?
+  sourceName String?
+  sourceMime String?
+  sourceChecksum String?
+  sourcePages Int?
+  parserVersion String?
+  sourceWarnings String[] @default([])
+  createdAt DateTime @default(now())
+  extractions DocumentExtraction[]
+  @@index([patientId, createdAt, id])
+}
+
+model DocumentExtraction {
+  id String @id @default(cuid())
+  documentId String
+  document ClinicalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  status String @default("PENDING")
+  model String
+  provider String
+  promptVersion String
+  schemaVersion Int @default(1)
+  inputChecksum String
+  createdById String
+  requestKey String @unique
+  attempts Int @default(0)
+  errorCode String?
+  result Json?
+  resultChecksum String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([documentId, createdAt, id])
+}
+
+model NotificationDelivery {
+  id String @id @default(cuid())
+  eventId String @unique
+  event ReviewEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status String @default("PENDING")
+  revision Int @default(1)
+  attempts Int @default(0)
+  lastErrorCode String?
+  nextAttemptAt DateTime?
+  acceptedAt DateTime?
+  messageId String?
+  retryKey String? @unique
+  retryPayloadHash String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history NotificationAttempt[]
+  @@index([status, nextAttemptAt])
+}
+
+model NotificationAttempt {
+  id String @id @default(cuid())
+  deliveryId String
+  delivery NotificationDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  number Int
+  status String
+  errorCode String?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  @@unique([deliveryId, number])
+}
+
+model WorkerHeartbeat {
+  id String @id
+  startedAt DateTime @default(now())
+  checkedAt DateTime
+  @@index([checkedAt])
+}
+
+model MedicationSchedule {
+  id String @id @default(cuid())
+  taskId String
+  task CareTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
+  userId String
+  revision Int
+  times Json
+  requestKey String @unique
+  payloadHash String
+  createdAt DateTime @default(now())
+  @@unique([taskId,userId,revision])
+}

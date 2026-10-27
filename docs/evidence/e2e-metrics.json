@@ -1,0 +1,190 @@
+{
+  "at": "2026-10-24T14:36:22.966Z",
+  "status": "passed",
+  "durationMs": 88174,
+  "scope": "Automated scenarios with synthetic accounts; push transport is simulated where specified",
+  "tests": [
+    {
+      "name": " / document-files.spec.ts / PDF/DOCX import with a cloud-ready extraction flow / previews safely without saving or invoking a model; checks role, origin and file validity",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 356,
+      "retry": 0
+    },
+    {
+      "name": " / document-files.spec.ts / PDF/DOCX import with a cloud-ready extraction flow / saves exact original bytes once, protects the source, and detects binary corruption",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 363,
+      "retry": 0
+    },
+    {
+      "name": " / document-files.spec.ts / PDF/DOCX import with a cloud-ready extraction flow / reads PDF from the packaged parser and keeps all source pages",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 307,
+      "retry": 0
+    },
+    {
+      "name": " / document-files.spec.ts / PDF/DOCX import with a cloud-ready extraction flow / previews on mobile, retains file after failure and exposes truthful cloud consent",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 3535,
+      "retry": 0
+    },
+    {
+      "name": " / documents.spec.ts / История болезни и проверяемые кандидаты / закрытый источник, повтор сохранения и условное чтение после проверки доступа",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 106,
+      "retry": 0
+    },
+    {
+      "name": " / documents.spec.ts / История болезни и проверяемые кандидаты / worker проверяет цитаты, сохраняет кандидатов и не меняет клинические сведения",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 91,
+      "retry": 0
+    },
+    {
+      "name": " / documents.spec.ts / История болезни и проверяемые кандидаты / перенос создаёт только проект; сохранение проверяет источник, версию и отрицания",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 116,
+      "retry": 0
+    },
+    {
+      "name": " / documents.spec.ts / История болезни и проверяемые кандидаты / проверка фактов в интерфейсе и передача в существующий редактор",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 3267,
+      "retry": 0
+    },
+    {
+      "name": " / integrations.spec.ts / v1 export is bounded, scoped to the doctor, audited and usable as JSON and CSV",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 7595,
+      "retry": 0
+    },
+    {
+      "name": " / patient-assignments.spec.ts / One place for assignments and treatment / doctor assigns questionnaires and confirms a medication schedule in one section",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 2097,
+      "retry": 0
+    },
+    {
+      "name": " / patient-assignments.spec.ts / One place for assignments and treatment / patient has only current tasks, upcoming medication and one chat entry",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 1849,
+      "retry": 0
+    },
+    {
+      "name": " / patient-assignments.spec.ts / One place for assignments and treatment / reminders are idempotent and stop after completion or changed plan",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 536,
+      "retry": 0
+    },
+    {
+      "name": " / review-decisions.spec.ts / Действия по версии основания / доступ, повтор взятия в работу и проверяемое основание",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 241,
+      "retry": 0
+    },
+    {
+      "name": " / review-decisions.spec.ts / Действия по версии основания / новые сведения требуют проверки, старые основания остаются неизменными",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 418,
+      "retry": 0
+    },
+    {
+      "name": " / review-decisions.spec.ts / Действия по версии основания / сообщение и подтверждение действия сохраняются однократно, повтор переживает новые данные",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 285,
+      "retry": 0
+    },
+    {
+      "name": " / review-decisions.spec.ts / Действия по версии основания / старое событие без основания, ограниченная история и результат по другому каналу",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 1558,
+      "retry": 0
+    },
+    {
+      "name": " / review-decisions.spec.ts / Действия по версии основания / одна панель: проверка источника, сбой отправки, новый контекст и мобильные состояния",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 11479,
+      "retry": 0
+    },
+    {
+      "name": " / saved-summary.spec.ts / saved summary survives reload, remains on failure, and is replaced after success",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 1521,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / enforces authentication, confirmed roles, origin and subscription boundary",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 103,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / queues idempotent device-scoped tests and records acceptance separately from browser display",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 103,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / contact requests and questionnaire completion queue independent idempotent pushes",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 337,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / retries explicit transient rejection at most three times, preserves unknown outcomes",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 181,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / revoked endpoints disable the device and cancel pending transmissions",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 101,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / checks acknowledged requests, changed ownership, session expiry and channel configuration before sending",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 485,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / browser enrollment, test state, denied/unsupported states and responsive settings",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 8135,
+      "retry": 0
+    },
+    {
+      "name": " / web-push.spec.ts / Web Push without contacting real push services / bounded devices, test rate limit and logout revoke further delivery",
+      "status": "passed",
+      "expectedStatus": "passed",
+      "durationMs": 206,
+      "retry": 0
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+name: Verify application
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-bookworm
+        env:
+          POSTGRES_USER: kontur
+          POSTGRES_DB: kontur
+          POSTGRES_PASSWORD: synthetic-ci-database-only
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kontur -d kontur"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://kontur:synthetic-ci-database-only@127.0.0.1:55432/kontur
+      BETTER_AUTH_SECRET: synthetic-ci-auth-secret-never-use-outside-ci-00000000
+      BETTER_AUTH_URL: http://localhost:3000
+      APP_ORIGIN: http://localhost:3000
+      DOCUMENT_EXTRACTION_ENABLED: "false"
+      ALERT_EMAIL_ENABLED: "false"
+      DEMO_MODE: "true"
+      DEMO_PASSWORD: synthetic-ci-demo-password-only
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.22.3"
+          cache: npm
+      - run: npm ci
+      - run: node scripts/configure-push-ci.mjs
+      - run: npm run db:generate
+      - run: npm run db:migrate
+      - run: npx tsx scripts/migrate-worker.ts
+      - run: npm run db:seed
+      - run: npm run test:unit
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - name: Browser regression on synthetic data
+        run: |
+          npm run start > /tmp/kontur-ci.log 2>&1 &
+          node --import tsx src/worker/index.ts > /tmp/kontur-worker-ci.log 2>&1 &
+          worker_pid=$!
+          trap 'kill -TERM "$worker_pid" 2>/dev/null || true' EXIT
+          node scripts/wait-ready.mjs
+          kill -TERM "$worker_pid"
+          wait "$worker_pid"
+          npm run test:e2e

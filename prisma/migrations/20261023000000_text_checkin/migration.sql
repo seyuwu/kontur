@@ -1,0 +1,1 @@
+ALTER TABLE "Observation" ALTER COLUMN "score" DROP NOT NULL;

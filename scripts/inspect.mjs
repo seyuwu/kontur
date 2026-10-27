@@ -1,0 +1,43 @@
+import { chromium } from "playwright";
+import { mkdirSync } from "node:fs";
+
+mkdirSync(".impeccable/review", { recursive: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? "C:/Users/nefon/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe" });
+const errors = [];
+async function inspect(page, name) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `.impeccable/review/${name}.png`, fullPage: true });
+  const overflow = await page.evaluate(() => ({ width: innerWidth, document: document.documentElement.scrollWidth, offending: [...document.querySelectorAll("main *")].filter(el => el.getBoundingClientRect().right > innerWidth + 2).slice(0, 5).map(el => ({ tag: el.tagName, class: el.className })) }));
+  console.log(name, JSON.stringify(overflow));
+}
+const doctor = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "ru-RU", reducedMotion: "reduce" });
+const page = await doctor.newPage(); page.on("pageerror", error => errors.push(error.message));
+await page.goto("http://localhost:3000/login");
+await inspect(page, "login");
+console.log("Login controls:", await page.getByRole("button").allTextContents());
+await page.getByRole("button", { name: /Кабинет терапевта/ }).click();
+await page.waitForURL("**/doctor");
+await page.getByRole("heading", { name: "Пациенты", exact: true }).waitFor();
+await inspect(page, "desktop");
+await page.getByRole("button", { name: /Анна Ковалёва/ }).first().click();
+await page.getByRole("heading", { name: "Анна Ковалёва", exact: true }).waitFor();
+await inspect(page, "doctor-detail");
+await page.getByRole("button", { name: "Открыть самоотчёт" }).first().click();
+await page.getByRole("dialog").waitFor();
+await inspect(page, "doctor-source");
+await page.getByRole("button", { name: "Закрыть панель" }).click();
+await page.setViewportSize({ width: 390, height: 844 });
+await inspect(page, "doctor-mobile");
+const patient = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ru-RU", reducedMotion: "reduce" });
+const mobile = await patient.newPage(); mobile.on("pageerror", error => errors.push(error.message));
+await mobile.goto("http://localhost:3000/login");
+await mobile.waitForLoadState("networkidle");
+await mobile.getByRole("button", { name: /Кабинет пациента/ }).click();
+await mobile.waitForURL("**/patient");
+await mobile.getByRole("heading", { name: /Здравствуйте/ }).waitFor();
+await inspect(mobile, "mobile");
+await mobile.getByRole("button", { name: /Хорошо/, exact: false }).filter({ hasText: "4" }).click();
+await inspect(mobile, "patient-checkin");
+console.log("Browser errors:", JSON.stringify(errors));
+await browser.close();

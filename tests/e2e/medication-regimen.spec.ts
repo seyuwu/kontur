@@ -1,0 +1,43 @@
+import "dotenv/config";
+import {randomUUID,createECDH,randomBytes} from "node:crypto";
+import {test,expect,request,type APIRequestContext} from "@playwright/test";
+import {db} from "../../src/server/db";
+import {authPost} from "./auth-request";
+import {moscowDate,assessmentDateAfter} from "../../src/lib/assessment-deadline";
+import {schedulePatientReminders} from "../../src/modules/web-push/reminders";
+import {processPush} from "../../src/modules/web-push";
+test("patient chooses clock times but cannot alter frequency, and each intake has its own report and reminder",async({browser})=>{
+ const origin="http://localhost:3000",users:string[]=[],clients:APIRequestContext[]=[];let patientId="";
+ async function account(role:"PATIENT"|"DOCTOR"){
+  const api=await request.newContext({baseURL:origin,extraHTTPHeaders:{Origin:origin}});clients.push(api);
+  const r=await authPost(api,"/api/auth/sign-up/email",{name:"Учебный участник расписания",email:`regimen-${randomUUID()}@synthetic.kontur.demo`,password:randomUUID()});expect(r.status()).toBe(200);const id=(await r.json()).user.id;users.push(id);if(role==="DOCTOR")await db.user.update({where:{id},data:{role}});return{api,id};
+ }
+ try{
+  const doctor=await account("DOCTOR"),patient=await account("PATIENT"),other=await account("PATIENT");const today=moscowDate();
+  patientId=(await db.patient.create({data:{doctorId:doctor.id,userId:patient.id,name:"Учебный пациент расписания",publicId:`REG-${randomUUID()}`,birthDate:new Date("1990-01-01")}})).id;
+  const curve=createECDH("prime256v1");curve.generateKeys();expect((await patient.api.post("/api/push",{data:{action:"connect",label:"Учебное расписание",subscription:{endpoint:`https://fcm.googleapis.com/fcm/send/synthetic-${randomUUID()}`,keys:{p256dh:curve.getPublicKey().toString("base64url"),auth:randomBytes(16).toString("base64url")}}}})).status()).toBe(200);
+  const taskId=randomUUID(),fixedId=randomUUID(),content={goal:"Учебная проверка расписания",instructions:"Вымышленные назначения для проверки интерфейса",nextContactDate:null,tasks:[{id:taskId,kind:"MEDICATION",title:"Учебное гибкое назначение",details:"Учебная памятка",startDate:today,repeat:"DAILY",dueDate:null,assignmentId:null,medication:{name:"Учебное гибкое назначение",dose:"1 капс.",regimen:{everyDays:3,timesPerDay:2,timeMode:"PATIENT",times:[]}}},{id:fixedId,kind:"MEDICATION",title:"Учебное фиксированное назначение",details:"",startDate:today,repeat:"DAILY",dueDate:null,assignmentId:null,medication:{name:"Учебное фиксированное назначение",dose:"5 мл",regimen:{everyDays:1,timesPerDay:1,timeMode:"FIXED",times:["09:00"]}}}]};
+  const workspace=await(await doctor.api.get(`/api/care?patientId=${patientId}`)).json();const draft=await(await doctor.api.post("/api/care",{data:{action:"save-draft",patientId,revision:0,basisToken:workspace.context.token,content}})).json();const confirmed=await doctor.api.post("/api/care",{data:{action:"confirm",patientId,draftId:draft.id,revision:draft.revision,reviewed:true,requestKey:randomUUID()}});expect(confirmed.status()).toBe(200);const planId=(await confirmed.json()).id;
+  await db.carePlanVersion.update({where:{id:planId},data:{confirmedAt:new Date(`${today}T00:00:00+03:00`)}});
+  const base={action:"medication-schedule",patientId,planVersionId:planId,taskId,revision:0,requestKey:randomUUID()};
+  for(const [api,times,status] of [[patient.api,["08:00"],400],[patient.api,["08:00","08:00"],400],[doctor.api,["08:00","20:00"],403],[other.api,["08:00","20:00"],404]] as const)expect((await api.post("/api/care",{data:{...base,times}})).status()).toBe(status);
+  expect((await patient.api.post("/api/care",{data:{...base,taskId:fixedId,times:["08:00"]}})).status()).toBe(409);
+  expect((await patient.api.post("/api/care",{data:{...base,times:["08:00","20:00"],everyDays:1}})).status()).toBe(400);
+  const pc=await browser.newContext({storageState:await patient.api.storageState(),viewport:{width:390,height:900}}),page=await pc.newPage();await page.goto("/patient");const card=page.locator(".patient-medication-card").filter({hasText:"Учебное гибкое назначение"});await card.getByRole("button",{name:"Выбрать время",exact:true}).click();
+  const editor=page.getByRole("dialog",{name:"Время приёма лекарства",exact:true});await editor.getByLabel("Приём 1 · время Москвы",{exact:true}).fill("00:00");await editor.getByLabel("Приём 2 · время Москвы",{exact:true}).fill("00:01");await editor.getByRole("button",{name:"Сохранить",exact:true}).click();await expect(editor).not.toBeVisible();await expect(card.getByRole("button",{name:/^00:00/})).toBeVisible();
+  await page.screenshot({path:".impeccable/review/patient-medication-regimen-390.png",fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const moved={...base,revision:1,requestKey:randomUUID(),times:["00:02","00:03"]};expect((await patient.api.post("/api/care",{data:moved})).status()).toBe(200);await expect(card.getByRole("button",{name:/^00:02/})).toBeVisible();
+  const now=new Date(`${today}T00:05:00+03:00`);await schedulePatientReminders(now,patientId);await schedulePatientReminders(now,patientId);
+  const rows=await db.patientReminder.findMany({where:{patientId,taskId,kind:"MEDICATION"},include:{deliveries:true}});expect(rows).toHaveLength(2);
+  for(const time of ["00:02","00:03"]){await card.getByRole("button",{name:new RegExp(`^${time}`)}).click();const report=page.getByRole("dialog",{name:`Учебное гибкое назначение · ${time}`,exact:true});await report.getByRole("button",{name:"Сохранить",exact:true}).click();await expect(report).not.toBeVisible();}
+  expect(await db.careDailyReport.count({where:{taskId,date:today,state:"DONE"}})).toBe(2);
+  for(const row of rows){await processPush(row.deliveries[0].id,async()=>{throw Error("completed intake must not notify");},now);expect((await db.pushDelivery.findUniqueOrThrow({where:{id:row.deliveries[0].id}})).status).toBe("CANCELLED");}
+  expect((await patient.api.post("/api/care",{data:{...base,revision:2,requestKey:randomUUID(),times:["00:04","00:05"]}})).status()).toBe(409);
+  const nextSchedule={...base,revision:2,requestKey:randomUUID(),times:["00:02","00:03"]};expect((await patient.api.post("/api/care",{data:nextSchedule})).status()).toBe(200);expect((await patient.api.post("/api/care",{data:nextSchedule})).status()).toBe(200);
+  expect(await db.medicationSchedule.count({where:{taskId,userId:patient.id}})).toBe(2);
+  const count=await db.patientReminder.count({where:{patientId,taskId,kind:"MEDICATION"}});await schedulePatientReminders(new Date(`${assessmentDateAfter(1)}T00:05:00+03:00`),patientId);expect(await db.patientReminder.count({where:{patientId,taskId,kind:"MEDICATION"}})).toBe(count);
+  const activeDate=assessmentDateAfter(3),activeNow=new Date(`${activeDate}T00:05:00+03:00`);await schedulePatientReminders(activeNow,patientId);expect(await db.patientReminder.count({where:{patientId,taskId,kind:"MEDICATION"}})).toBe(count+2);
+  const doctorState=await(await doctor.api.get(`/api/care?patientId=${patientId}`)).json();const med=doctorState.current.tasks.find((t:{id:string})=>t.id===taskId);expect(med.medication.regimen.everyDays).toBe(3);expect(med.medication.regimen.timesPerDay).toBe(2);expect(med.medicationSchedule.times).toEqual(["00:02","00:03"]);expect(med.medicationIntakes).toHaveLength(2);
+  const dc=await browser.newContext({storageState:await doctor.api.storageState(),viewport:{width:1440,height:1000}}),dp=await dc.newPage();await dp.route("**/api/summaries?*",route=>route.fulfill({json:{enabled:false,reason:"",saved:null,fingerprint:null,stale:false}}));await dp.goto(`/doctor?patient=${patientId}`);await dp.getByRole("tab",{name:"Лечение и задачи",exact:true}).click();await dp.getByRole("button",{name:/Учебное гибкое назначение/}).click();await dp.getByRole("button",{name:"Изменить назначение",exact:true}).click();await expect(dp.locator(".care-task-editor:not([hidden])").getByLabel("Интервал, дней",{exact:true})).toHaveValue("3");await expect(dp.locator(".care-task-editor:not([hidden])").getByLabel("Приёмов в этот день",{exact:true})).toHaveValue("2");await dp.screenshot({path:".impeccable/review/doctor-medication-regimen-1440.png"});await dp.setViewportSize({width:390,height:900});await dp.screenshot({path:".impeccable/review/doctor-medication-regimen-390.png"});expect(await dp.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await dc.close();await pc.close();
+ }finally{if(patientId)await db.patient.deleteMany({where:{id:patientId}});await db.auditEvent.deleteMany({where:{actorId:{in:users}}});await db.user.deleteMany({where:{id:{in:users}}});await Promise.all(clients.map(c=>c.dispose()));await db.$disconnect();}
+});

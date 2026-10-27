@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-24T14:41:17.385Z",
+  "backupDurationMs": 806,
+  "sha256": "2607ab980dfe000fa520b41c33cdb49417161403887233fcc246aedff90aaa8a",
+  "restore": {
+    "contentMatches": true,
+    "verifiedAt": "2026-10-24T14:41:18.391Z",
+    "durationMs": 1006,
+    "countsMatch": true
+  },
+  "tableCounts": {
+    "users": 16,
+    "patients": 13,
+    "observations": 56,
+    "messages": 11,
+    "submissions": 3,
+    "plans": 2,
+    "profiles": 1,
+    "bases": 1,
+    "receipts": 0,
+    "dailyReports": 3,
+    "concerns": 3,
+    "referrals": 1,
+    "referralUpdates": 2,
+    "documents": 0,
+    "extractions": 0,
+    "deliveries": 0,
+    "deliveryAttempts": 0,
+    "savedSummaries": 2,
+    "careTasks": 2,
+    "carePlanTasks": 2,
+    "careTaskReports": 0,
+    "pushDevices": 2,
+    "pushDeliveries": 6,
+    "patientReminders": 2
+  },
+  "criticalTableCount": 36,
+  "scope": "Local PostgreSQL snapshot restored into separate temporary database; all application table contents compared; not full infrastructure disaster recovery"
+}

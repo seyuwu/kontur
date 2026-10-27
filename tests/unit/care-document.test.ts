@@ -1,0 +1,9 @@
+import { describe, expect, it } from "vitest";
+import { careDocumentText, careDocumentHtml } from "../../src/modules/care/document";
+import type { CarePlanData } from "../../src/lib/care";
+const plan: CarePlanData = { id: "synthetic", version: 4, goal: "Учебная цель", instructions: "Подготовить вопросы к контакту", nextContactDate: "2026-10-25", confirmedAt: "2026-10-18T10:00:00Z", confirmedBy: "Учебный врач", isCurrent: false, tasks: [{ id: "task", kind: "ACTION", title: "Записать вопрос", details: "Уточнить порядок связи", dueDate: null, assignmentId: null, repeat: "DAILY", assignment: null, report: { id: "report", state: "DONE", revision: 1, note: "Не должно попасть в документ выбранного плана", planVersion: 4, createdAt: "2026-10-19T10:00:00Z" } }] };
+describe("Документы из подтверждённого плана", () => {
+  it("сохраняет версию и договорённости без текущих отметок", () => { const text = careDocumentText(plan, { name: "Тест", publicId: "SYNTHETIC", birthDate: "1990-01-01" }, "patient", true); expect(text).toContain("версия 4"); expect(text).toContain("ежедневно"); expect(text).toContain("Подготовить вопросы"); expect(text).not.toContain("Не должно попасть"); expect(text).toContain("Все данные являются вымышленными"); });
+  it("помечает проект врача как требующий проверки", () => { const text = careDocumentText(plan, { name: "Тест", publicId: "SYNTHETIC", birthDate: "1990-01-01" }, "doctor", false); expect(text).toContain("Проект требует проверки"); expect(text).not.toContain("Все данные являются вымышленными"); });
+  it("экранирует пользовательские фрагменты в HTML", () => { const html = careDocumentHtml('</pre><script>alert("test")</script>&', '<img src=x onerror="test">'); expect(html).not.toContain("<script>"); expect(html).not.toContain("<img"); expect(html).toContain("&lt;script&gt;"); expect(html).toContain("&amp;"); });
+});

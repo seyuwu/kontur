@@ -1,0 +1,2 @@
+import { build } from "esbuild";
+await build({ entryPoints: ["src/modules/documents/file-parser-worker.mjs"], outfile: "resources/document-parser/worker.mjs", bundle: true, platform: "node", format: "esm", target: "node22", external: ["@napi-rs/canvas", "pdfjs-dist/package.json"], banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" }, logLevel: "warning" });

@@ -1,0 +1,60 @@
+{
+  "provider": "mistral",
+  "model": "ministral-14b-latest",
+  "at": "2026-10-24T14:32:14.575Z",
+  "syntheticOnly": true,
+  "clinicalValidation": false,
+  "plannedCases": 6,
+  "completedCases": 6,
+  "matchedCases": 6,
+  "results": [
+    {
+      "id": "allergy",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 1,
+      "elapsedMs": 6153
+    },
+    {
+      "id": "stopped",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 1,
+      "elapsedMs": 2132
+    },
+    {
+      "id": "taking",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 1,
+      "elapsedMs": 2809
+    },
+    {
+      "id": "negative-section",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 1,
+      "elapsedMs": 2111
+    },
+    {
+      "id": "uncertain",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 1,
+      "elapsedMs": 3460
+    },
+    {
+      "id": "injection",
+      "completed": true,
+      "validCitations": true,
+      "matched": true,
+      "factCount": 0,
+      "elapsedMs": 932
+    }
+  ]
+}

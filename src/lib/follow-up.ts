@@ -1,0 +1,10 @@
+import type { z } from "zod";
+import type { concernInput, referralContent, referralProgress, dailyInput } from "@/modules/follow-up/contract";
+export type DailyState = z.infer<typeof dailyInput>["state"];
+export type DailyJournal = { today: string; planVersionId: string | null; isCurrent: boolean; tasks: { id: string; title: string; details: string; canReport: boolean; days: { date: string; report: { id: string; revision: number; state: DailyState; note: string; needsContact: boolean; planVersion: number } | null }[] }[] };
+export type ConcernData = Omit<z.infer<typeof concernInput>, "requestKey"> & { id: string; createdAt: string; reviewedAt: string | null; planVersionId: string | null };
+export type ConcernPage = { entries: ConcernData[]; nextCursor: string | null; unreviewed: number };
+export type ReferralContent = z.infer<typeof referralContent>;
+export type ReferralStatus = "CONFIRMED" | z.infer<typeof referralProgress>["status"];
+export type ReferralData = { id: string; revision: number; content: ReferralContent; status: ReferralStatus; confirmedBy: string; createdAt: string; history: { revision: number; status: ReferralStatus; date: string | null; note: string; actorName: string; createdAt: string }[] };
+export type ReferralPage = { entries: Omit<ReferralData, "history">[]; nextCursor: string | null; totalCount: number; activeCount: number; basisToken?: string };
