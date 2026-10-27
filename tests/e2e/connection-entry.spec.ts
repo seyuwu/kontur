@@ -92,7 +92,7 @@ for (const method of ["code-registration", "code-before-registration", "qr-regis
         await patientPage.getByLabel("Имя и фамилия", { exact: true }).fill("Пациент для проверки подключения");
         await patientPage.getByLabel("Электронная почта", { exact: true }).fill(patientEmail);
         await patientPage.getByLabel("Пароль", { exact: true }).fill(password);
-        await patientPage.getByRole("checkbox").check();
+        await expect(patientPage.getByRole("checkbox")).toHaveCount(0);
         const signedUp = patientPage.waitForResponse(r => r.url().endsWith("/api/auth/sign-up/email") && r.request().method() === "POST");
         await patientPage.getByRole("button", { name: "Создать аккаунт", exact: true }).click();
         expect((await signedUp).status()).toBe(200);

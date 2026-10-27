@@ -160,7 +160,7 @@ test("сквозной сценарий: код → подтверждение �
     await patientPage.getByRole("textbox", { name: "Имя и фамилия" }).fill(name);
     await patientPage.getByRole("textbox", { name: "Электронная почта" }).fill(email);
     await patientPage.getByLabel("Пароль", { exact: true }).fill(randomUUID());
-    await patientPage.getByRole("checkbox").check();
+    await expect(patientPage.getByRole("checkbox")).toHaveCount(0);
     expect(await patientPage.locator("form").evaluate(form => Array.from((form as HTMLFormElement).elements).filter(element => element instanceof HTMLInputElement && !element.validity.valid).map(element => ({ name: (element as HTMLInputElement).name, issue: (element as HTMLInputElement).validationMessage })))).toEqual([]);
     const registered = patientPage.waitForResponse(response => response.url().endsWith("/api/auth/sign-up/email") && response.request().method() === "POST", { timeout: 10000 });
     await patientPage.getByRole("button", { name: "Создать аккаунт", exact: true }).click();
