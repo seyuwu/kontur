@@ -66,7 +66,13 @@ for (const method of ["code-registration", "code-before-registration", "qr-regis
       const patientPage = await patientContext.newPage();
       if (method === "code-registration") {
         await patientPage.goto(`${origin}/register`);
-        await patientPage.getByLabel(/Код от врача/).fill(invitation.code);
+        const codeField = patientPage.getByLabel(/Код от врача/);
+        await expect(codeField).toBeEnabled();
+        await codeField.evaluate((field, code) => {
+          const clipboard = new DataTransfer(); clipboard.setData("text/plain", `${code.slice(0, 3)} ${code.slice(3)}`);
+          field.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: clipboard }));
+        }, invitation.code);
+        await expect(codeField).toHaveValue(invitation.code);
       } else if (method === "code-before-registration") {
         await patientPage.goto(`${origin}/login`);
         await patientPage.getByRole("link", { name: "У меня есть код от врача", exact: true }).click();
