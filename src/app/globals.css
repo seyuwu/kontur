@@ -500,6 +500,9 @@ svg { flex-shrink: 0; }
 .request-row strong { font-size: 12px; }
 .request-row p { font-size: 11px; color: var(--muted); }
 .request-actions { display: flex; gap: 6px; }
+.drawer .request-row { flex-wrap: wrap; }
+.drawer .request-actions { width: 100%; }
+.drawer .request-actions .button { flex: 1; }
 .login-layout { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; background: white; }
 .login-intro { background: var(--rail); color: #f1f5eb; padding: 55px 11%; display: flex; flex-direction: column; justify-content: space-between; }
 .login-intro .brand { margin-bottom: 70px; }

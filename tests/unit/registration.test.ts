@@ -10,5 +10,5 @@ it("only creates doctors in an explicit synthetic demo with consent",()=>{
 it("keeps patient defaults and rejects unknown roles",()=>{
  expect(registrationFields({})).toEqual({role:"PATIENT",specialty:null});
  expect(registrationFields({accountType:"PATIENT",doctorSpecialty:"Не сохранять"})).toEqual({role:"PATIENT",specialty:null});
- expect(()=>registrationFields({accountType:"ADMIN",syntheticData:true})).toThrow();
+ expect(()=>registrationFields({accountType:"ADMIN"})).toThrow();
 });

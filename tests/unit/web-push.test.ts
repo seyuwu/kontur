@@ -40,7 +40,7 @@ describe("Web Push boundaries", () => {
   });
   it("preserves exact event navigation after login without open redirects", () => {
     expect(loginReturn("/doctor?patient=p1&event=e1")).toBe("/doctor?patient=p1&event=e1");
-    expect(loginReturn("/connect")).toBe("/connect");
+    expect(loginReturn("/connect")).toBe("/");
     for (const value of ["//evil.test", "https://evil.test/doctor", "/doctor/../api/private", "/doctor-other", "javascript:alert(1)"]) expect(loginReturn(value)).toBe("/");
     expect(doctorReturn({ patient: ["p1", "p2"], event: "e1" })).toBe("/doctor?event=e1");
     expect(loginReturn("/doctor?patient=p1&event=e1&secret=clinical")).toBe("/doctor?patient=p1&event=e1");

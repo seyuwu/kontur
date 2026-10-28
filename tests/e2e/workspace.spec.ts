@@ -157,7 +157,7 @@ test("сквозной сценарий: код → подтверждение �
     const code = (await doctorPage.locator(".invite-code").innerText()).replace(/\s/g, "");
     await doctorPage.getByRole("button", { name: "Закрыть панель" }).click();
     await patientPage.goto("/register"); await patientPage.waitForLoadState("networkidle");
-    await patientPage.getByRole("textbox", { name: "Имя и фамилия" }).fill(name);
+    await expect(patientPage.getByRole("textbox", { name: "Имя и фамилия" })).toHaveCount(0);
     await patientPage.getByRole("textbox", { name: "Электронная почта" }).fill(email);
     await patientPage.getByLabel("Пароль", { exact: true }).fill(randomUUID());
     await expect(patientPage.getByRole("checkbox")).toHaveCount(0);
@@ -176,6 +176,7 @@ test("сквозной сценарий: код → подтверждение �
     await expect(requestRow).toBeVisible();
     await requestRow.getByRole("button", { name: "Подтвердить", exact: true }).click();
     await expect(requestRow).not.toBeVisible();
+    expect((await db.user.findUniqueOrThrow({ where: { id: userId } })).name).toBe(name);
     await patientPage.getByRole("link", { name: "Перейти в кабинет" }).click();
     await expect(patientPage.getByRole("heading", { name: "Ваши назначения",exact:true })).toBeVisible();
     await patientPage.getByRole("navigation").getByRole("button",{name:"Чат с врачом"}).click();

@@ -23,10 +23,10 @@ test("doctor registers through the UI, gets an empty private workspace and can l
 test("patient registration remains private and profile editing cannot change the role",async()=>{
  const api=await request.newContext({baseURL:origin,extraHTTPHeaders:{Origin:origin}});let id="";
  try{
-  const badEmail=`bad-role-${randomUUID()}@synthetic.kontur.demo`;const invalid=await authPost(api,"/api/auth/sign-up/email",{name:"Учебный участник",email:badEmail,password:randomUUID(),accountType:"ADMIN",syntheticData:true});expect(invalid.status()).toBe(400);expect(await db.user.findUnique({where:{email:badEmail}})).toBeNull();
-  const r=await authPost(api,"/api/auth/sign-up/email",{name:"Учебный пациент регистрации",email:`patient-signup-${randomUUID()}@synthetic.kontur.demo`,password:randomUUID(),accountType:"PATIENT",syntheticData:true});expect(r.status()).toBe(200);id=(await r.json()).user.id;
+  const badEmail=`bad-role-${randomUUID()}@synthetic.kontur.demo`;const invalid=await authPost(api,"/api/auth/sign-up/email",{name:"Учебный участник",email:badEmail,password:randomUUID(),accountType:"ADMIN"});expect(invalid.status()).toBe(400);expect(await db.user.findUnique({where:{email:badEmail}})).toBeNull();
+  const r=await authPost(api,"/api/auth/sign-up/email",{name:"Учебный пациент регистрации",email:`patient-signup-${randomUUID()}@synthetic.kontur.demo`,password:randomUUID(),accountType:"PATIENT"});expect(r.status()).toBe(200);id=(await r.json()).user.id;
   expect((await api.post("/api/auth/update-user",{data:{role:"DOCTOR"}})).status()).toBe(400);
-  await api.post("/api/auth/update-user",{data:{name:"Учебный пациент",accountType:"DOCTOR",doctorSpecialty:"Не повышать роль",syntheticData:true}});
+  await api.post("/api/auth/update-user",{data:{name:"Учебный пациент",accountType:"DOCTOR",doctorSpecialty:"Не повышать роль"}});
   expect((await db.user.findUniqueOrThrow({where:{id}})).role).toBe("PATIENT");expect((await api.get("/api/patients")).status()).toBe(403);expect((await(await api.get("/api/workspace")).json()).actor.role).toBe("PATIENT");
  }finally{if(id)await db.user.deleteMany({where:{id}});await api.dispose();await db.$disconnect();}
 });
